@@ -24,6 +24,10 @@
 
 ---
 
+<p align="center">
+  <img src="./public/bulalab-status-screenshot.webp" alt="BulaLab Status Screenshot" width="800">
+</p>
+
 ## Overview
 
 BulaLab Status is a self-hostable status page that monitors your services (HTTP/HTTPS and SIP), tracks uptime and downtime, and notifies subscribers via email when incidents occur.
