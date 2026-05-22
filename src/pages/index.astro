@@ -1,0 +1,109 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ServiceCard } from '../components/ServiceCard';
+import { IncidentRow } from '../components/IncidentRow';
+import { prisma } from '../lib/prisma';
+import { computeTimeline } from '../lib/uptime';
+
+const services = await prisma.service.findMany({
+  include: {
+    downtimeReports: {
+      where: {
+        startedAt: {
+          gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        },
+      },
+      orderBy: { startedAt: 'desc' },
+    },
+  },
+  orderBy: { name: 'asc' },
+});
+
+const lastCheck = services.reduce((latest, s) => {
+  return s.updatedAt > latest ? s.updatedAt : latest;
+}, new Date(0));
+
+const now = new Date();
+const overallDowntimes = services.flatMap((s) => s.downtimeReports);
+const overallTimeline = computeTimeline(overallDowntimes.map((d) => ({ startedAt: d.startedAt, endedAt: d.endedAt, duration: d.duration })));
+
+const recentIncidents = await prisma.downtimeReport.findMany({
+  include: { service: true },
+  orderBy: { startedAt: 'desc' },
+  take: 2,
+});
+---
+
+<BaseLayout title="BulaLab Status" description="Real-time status monitoring for BulaLab services. Check current uptime, recent incidents, and service availability." canonical="/">
+  <div class="space-y-8">
+    <div class="flex items-end justify-between">
+      <div>
+        <h1 class="text-2xl font-bold text-[#111] dark:text-[#eee]">Service Status</h1>
+        <p class="text-sm text-[#888] dark:text-[#555] mt-1">
+          Last check: {lastCheck > new Date(0) ? lastCheck.toLocaleString() : 'never'}
+        </p>
+      </div>
+
+      <div class="flex items-center gap-2 text-sm text-[#888] dark:text-[#555]">
+        <span class="tabular-nums font-semibold text-[#111] dark:text-[#eee]">{overallTimeline.uptime}%</span>
+        <span>uptime (30d)</span>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+      {services.map((svc) => {
+        const latestDowntime = svc.downtimeReports[0];
+        const timeline = computeTimeline(
+          svc.downtimeReports.map((d) => ({ startedAt: d.startedAt, endedAt: d.endedAt, duration: d.duration })),
+        );
+        return (
+          <ServiceCard
+            id={svc.id}
+            name={svc.name}
+            source={svc.source}
+            status={svc.status}
+            timeline={timeline}
+            lastError={latestDowntime?.error}
+            lastErrorAt={latestDowntime?.startedAt}
+          />
+        );
+      })}
+    </div>
+
+    {services.length === 0 && (
+      <div class="text-center py-20 text-[#888] dark:text-[#444]">
+        <p class="text-lg font-medium">No services configured</p>
+        <p class="text-sm mt-1">Add a service via the CLI: <code class="text-xs bg-[#eee] dark:bg-[#111] px-2 py-0.5 rounded">bun cli add --data services.json</code></p>
+      </div>
+    )}
+
+    <section class="space-y-3">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-[#888] dark:text-[#555] uppercase tracking-wide">Recent Incidents</h2>
+        <a
+          href="/incidents"
+          class="text-xs text-[#888] dark:text-[#555] hover:text-[#111] dark:hover:text-[#eee] transition-colors"
+        >View all</a>
+      </div>
+
+      {recentIncidents.length > 0 ? (
+        <div class="space-y-2">
+          {recentIncidents.map((r) => (
+            <IncidentRow
+              id={r.id}
+              serviceName={r.service.name}
+              serviceId={r.serviceId}
+              startedAt={r.startedAt}
+              endedAt={r.endedAt}
+              duration={r.duration}
+              error={r.error}
+              resolved={r.resolved}
+            />
+          ))}
+        </div>
+      ) : (
+        <p class="text-sm text-[#888] dark:text-[#444]">All services running smoothly.</p>
+      )}
+    </section>
+  </div>
+</BaseLayout>

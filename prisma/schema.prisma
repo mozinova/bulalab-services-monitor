@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ServiceStatus {
+  UP
+  DOWN
+  DEGRADED
+}
+
+model Service {
+  id          String          @id @default(uuid())
+  name        String
+  url         String
+  description String?
+  status      ServiceStatus   @default(UP)
+  interval    Int             @default(60)
+  protocol    ServiceProtocol
+  source      String //http url or sip address
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  uptimes         Uptime[]
+  downtimeReports DowntimeReport[]
+
+  @@map("services")
+}
+
+model Uptime {
+  id        String   @id @default(uuid())
+  startedAt DateTime
+  endedAt   DateTime?
+  duration  Int?
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("uptimes")
+}
+
+model DowntimeReport {
+  id         String   @id @default(uuid())
+  startedAt  DateTime
+  endedAt    DateTime?
+  duration   Int?
+  statusCode Int?
+  error      String?
+  resolved   Boolean  @default(false)
+
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@map("downtime_reports")
+}
+enum ServiceProtocol {
+  HTTP
+  SIP
+}
+
+model EmailSubscriber {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  verified    Boolean   @default(false)
+  code        String?
+  codeExpires DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@map("email_subscribers")
+}

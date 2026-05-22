@@ -1,0 +1,43 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { IncidentRow } from '../components/IncidentRow';
+import { prisma } from '../lib/prisma';
+
+const reports = await prisma.downtimeReport.findMany({
+  include: { service: true },
+  orderBy: { startedAt: 'desc' },
+});
+---
+
+<BaseLayout title="Incidents — BulaLab Status" description="Historical incident log for BulaLab services. View all resolved and ongoing downtime reports in chronological order." canonical="/incidents">
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-[#111] dark:text-[#eee]">Incidents</h1>
+      <p class="text-sm text-[#888] dark:text-[#555] mt-1">
+        {reports.length} incident{reports.length !== 1 ? 's' : ''} recorded
+      </p>
+    </div>
+
+    <div class="space-y-3">
+      {reports.map((r) => (
+        <IncidentRow
+          id={r.id}
+          serviceName={r.service.name}
+          serviceId={r.serviceId}
+          startedAt={r.startedAt}
+          endedAt={r.endedAt}
+          duration={r.duration}
+          error={r.error}
+          resolved={r.resolved}
+        />
+      ))}
+    </div>
+
+    {reports.length === 0 && (
+      <div class="text-center py-20 text-[#888] dark:text-[#444]">
+        <p class="text-lg font-medium">No incidents recorded</p>
+        <p class="text-sm mt-1">All services are running smoothly.</p>
+      </div>
+    )}
+  </div>
+</BaseLayout>

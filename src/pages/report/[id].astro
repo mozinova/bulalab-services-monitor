@@ -1,0 +1,108 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { prisma } from '../../lib/prisma';
+
+const { id } = Astro.params;
+
+const report = await prisma.downtimeReport.findUnique({
+  where: { id },
+  include: { service: true },
+});
+
+if (!report) {
+  return Astro.redirect('/404', 404);
+}
+
+function fmt(d: Date) {
+  return d.toLocaleString();
+}
+
+function durationLabel(seconds: number | null, ongoing: boolean): string {
+  if (ongoing) return 'Ongoing';
+  if (seconds == null) return '—';
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}m ${secs}s`;
+}
+---
+
+<BaseLayout
+  title={`${report.service.name} Incident — BulaLab Status`}
+  description={`Incident report for ${report.service.name}: ${report.resolved ? 'Resolved' : 'Ongoing'} — ${report.error ?? 'No details'}`}
+  canonical={`/report/${report.id}`}
+>
+  <div class="max-w-2xl mx-auto space-y-6">
+    <a
+      href="/incidents"
+      class="inline-flex items-center gap-1 text-sm text-[#888] hover:text-[#555] dark:text-[#666] dark:hover:text-[#aaa] transition-colors"
+    >
+      <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+      </svg>
+      Back to incidents
+    </a>
+
+    <div class="rounded-2xl border border-[#e5e5e5] dark:border-[#222] bg-white dark:bg-[#0a0a0a] overflow-hidden">
+      <div class={`h-1 ${report.resolved ? 'bg-emerald-500' : 'bg-red-500'}`} />
+
+      <div class="p-6 space-y-6">
+        <div>
+          <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Service</p>
+          <p class="text-lg font-semibold text-[#111] dark:text-[#eee] mt-0.5">{report.service.name}</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Status</p>
+            <span class={`inline-flex items-center gap-1.5 text-sm font-medium mt-1 ${
+              report.resolved
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-red-600 dark:text-red-400'
+            }`}>
+              <span class={`w-2 h-2 rounded-full ${report.resolved ? 'bg-emerald-500' : 'bg-red-500'}`} />
+              {report.resolved ? 'Resolved' : 'Ongoing'}
+            </span>
+          </div>
+
+          {report.statusCode && (
+            <div>
+              <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Status Code</p>
+              <p class="text-sm font-medium text-[#111] dark:text-[#eee] mt-0.5">{report.statusCode}</p>
+            </div>
+          )}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Started</p>
+            <p class="text-sm text-[#111] dark:text-[#eee] mt-0.5">{fmt(report.startedAt)}</p>
+          </div>
+
+          <div>
+            <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Ended</p>
+            <p class="text-sm text-[#111] dark:text-[#eee] mt-0.5">
+              {report.endedAt ? fmt(report.endedAt) : '—'}
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Duration</p>
+          <p class="text-sm font-medium text-[#111] dark:text-[#eee] mt-0.5">
+            {durationLabel(report.duration, !report.endedAt)}
+          </p>
+        </div>
+
+        {report.error && (
+          <div>
+            <p class="text-xs text-[#888] dark:text-[#555] uppercase tracking-wide font-medium">Error</p>
+            <p class="text-sm text-red-500 bg-red-500/10 rounded-lg px-3 py-2 mt-1 font-mono">
+              {report.error}
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</BaseLayout>

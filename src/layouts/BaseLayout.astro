@@ -1,0 +1,75 @@
+---
+import '../styles/global.css';
+import { NavMenu } from '../components/NavMenu';
+import { SubscribeModal } from '../components/SubscribeModal';
+
+const {
+  title = 'BulaLab Status',
+  description = 'Real-time service status monitoring and incident tracking for BulaLab.',
+  canonical,
+} = Astro.props;
+
+const BASE = 'https://status.withkaya.com';
+const fullUrl = canonical ? `${BASE}${canonical}` : BASE;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="canonical" href={fullUrl} />
+
+    <title>{title}</title>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={fullUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${BASE}/logo.webp`} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={`${BASE}/logo.webp`} />
+
+    <script is:inline>
+      (function() {
+        var t = localStorage.getItem('theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body class="bg-[#f5f5f5] dark:bg-black text-[#111] dark:text-[#eee] antialiased min-h-screen flex flex-col">
+    <header class="sticky top-0 z-40 bg-white/80 dark:bg-[#000]/80 backdrop-blur-md border-b border-[#e5e5e5] dark:border-[#222]">
+      <div class="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+          <img src="/logo_h.webp" alt="BulaLab" class="h-7 w-auto block dark:hidden" />
+          <img src="/logo_h_white.webp" alt="BulaLab" class="h-7 w-auto hidden dark:block" />
+        </a>
+
+        <NavMenu client:load />
+      </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto px-4 py-8 flex-1 w-full">
+      <slot />
+    </main>
+
+    <footer class="border-t border-[#e5e5e5] dark:border-[#222] py-6">
+      <div class="max-w-5xl mx-auto px-4 flex items-center justify-between text-xs text-[#888] dark:text-[#555]">
+        <span>&copy; {new Date().getFullYear()} BulaLab</span>
+      </div>
+    </footer>
+
+    <SubscribeModal client:load />
+  </body>
+</html>

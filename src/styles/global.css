@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-black: #000000;
+}
+
+::selection {
+  background-color: #3b82f6;
+  color: white;
+}
